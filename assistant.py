@@ -3,7 +3,6 @@ from openai import OpenAI
 from openai.types.beta.threads.run import Run
 from openai.types.beta.thread import Thread
 from openai.types.beta.assistant import Assistant
-from typing import Literal
 
 avaliable_tools = [{
     "type": "function",
@@ -38,41 +37,6 @@ class StockAssistant:
     def init_client(self, api_key: str) -> OpenAI:
         self.client.api_key = api_key
         return self.client
-
-    def list_files(self, purpose: str = 'assistants') -> list:
-        """Retrieve a list of files with the specified purpose."""
-        files = self.client.files.list(purpose=purpose)
-        file_list = files.model_dump()
-        return file_list['data'] if 'data' in file_list else []
-
-    def find_file_id_by_name(self, filename: str, purpose: str = 'assistants') -> str | None:
-        """Check if the file exists in the OpenAI account and return its ID."""
-        files = self.list_files(purpose=purpose)
-        for file in files:
-            print("Is this a Duplicate File?", file['filename'] == filename)
-            if file['filename'] == filename:
-                print("file['id']", file['id'])
-                return file['id']
-        return None
-
-    def create_file(self, file_path: str, purpose: Literal['fine-tune', 'assistants'] = 'assistants') -> str:
-        """Create or find a file in OpenAI. 
-        https://platform.openai.com/docs/api-reference/files/list
-        If file is already uploaded with same name then 
-        we will use it rather than creating a new one. """
-
-        existing_file_id = self.find_file_id_by_name(file_path, purpose)
-
-        print("found existing file...", existing_file_id)
-
-        if existing_file_id:
-            self.file_id = existing_file_id
-            return existing_file_id
-        else:
-            with open(file_path, "rb") as file:
-                file_obj = self.client.files.create(file=file, purpose=purpose)
-                self.file_id = file_obj.id
-                return file_obj.id
 
     def list_assistants(self) -> list:
         """Retrieve a list of assistants."""
