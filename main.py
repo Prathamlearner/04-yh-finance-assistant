@@ -6,7 +6,7 @@ import time
 import os
 import json
 import time
-import logging
+# import logging
 
 from dotenv import load_dotenv, find_dotenv
 
@@ -25,6 +25,10 @@ assistant_id = os.environ.get("ASSISTANT_ID")
 if not assistant_id:
     st.sidebar.error(f"Assistant is Sleeping - come back later!")
     st.stop()
+
+# Assert to satisfy Mypy's type checking - we have already added the check above but mypy doesn't know that!!!
+# This assertion will inform Mypy that beyond this point in the code, assistant_id cannot be None. Here's how you can do it:
+assert assistant_id is not None, "Assistant ID must be set"
 
 
 def getStockPrice(ticker: dict[str, str]) -> dict[str, Union[float, str]]:
@@ -66,8 +70,8 @@ def handle_assistant_function_call(submit_tool_outputs: RequiredActionSubmitTool
         function_name = each_tool.function.name
         function_args = each_tool.function.arguments
 
-        logging.info(f"Tool Call ID: {tool_call_id}, Function Name: {
-                     function_name}, Function Arguments: {function_args}")
+        # logging.info(f"Tool Call ID: {tool_call_id}, Function Name: {
+        #              function_name}, Function Arguments: {function_args}")
 
         if function_name == "get_stock_price":
             try:
@@ -90,8 +94,8 @@ def handle_assistant_function_call(submit_tool_outputs: RequiredActionSubmitTool
                     })
                     st.sidebar.error(output["error"])
             except json.JSONDecodeError:
-                logging.error(f"Invalid JSON input for tool call ID {
-                              tool_call_id}: {function_args}")
+                # logging.error(f"Invalid JSON input for tool call ID {
+                #               tool_call_id}: {function_args}")
                 st.sidebar.error(f"Invalid input for {symbol}")
 
     # submit response to assistant
@@ -183,7 +187,7 @@ if st.session_state.start_chat:
                 role="user"
             )
         except Exception:
-            logging.error(f"Error adding message to thread")
+            # logging.error("Error adding message to thread")
             st.sidebar.error(
                 "Error in processing your request. Please refresh and try again later.")
             st.stop()  # Optionally stop further execution
@@ -209,7 +213,7 @@ if st.session_state.start_chat:
                 else:
                     # Handle the case where no action is required
                     # This could be logging, displaying a message, etc.
-                    logging.info("No action is required for this run.")
+                    print("No action is required for this run.")
 
             run = client.beta.threads.runs.retrieve(
                 thread_id=st.session_state.thread_id,
