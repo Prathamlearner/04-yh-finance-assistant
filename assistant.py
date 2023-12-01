@@ -4,25 +4,53 @@ from openai.types.beta.threads.run import Run
 from openai.types.beta.thread import Thread
 from openai.types.beta.assistant import Assistant
 
-avaliable_tools = [{
-    "type": "function",
-    "function":  {
-        "name": "get_stock_price",
-        "description": "Get the current stock price",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "symbol": {
-                    "type": "string",
-                    "description": "The stock symbol"
-                }
-            },
-            "required": [
-                "symbol"
-            ]
+avaliable_tools = [
+    {"type": "code_interpreter"},
+    {
+        "type": "function",
+        "function":  {
+            "name": "get_stock_price",
+            "description": "Get the current stock price",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "symbol": {
+                        "type": "string",
+                        "description": "The stock symbol"
+                    }
+                },
+                "required": [
+                    "symbol"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function":  {
+            "name": "get_stock_data",
+            "description": "Fetches historical stock data for the given ticker symbol and time period.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "ticker": {
+                        "type": "string",
+                        "description": "The stock ticker symbol."
+                    },
+                    "period": {
+                        "type": "string",
+                        "description": "The time period for which historical data is requested (e.g., '1m' for 1 month)."
+                    }
+                },
+                "required": [
+                    "ticker",
+                    "period"
+                ]
+            }
         }
     }
-}]
+
+]
 
 
 class StockAssistant:

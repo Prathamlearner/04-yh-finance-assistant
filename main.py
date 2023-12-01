@@ -1,7 +1,5 @@
-from openai import OpenAI
 import streamlit as st
 
-import yfinance as yf
 import time
 import os
 import json
@@ -13,35 +11,15 @@ from dotenv import load_dotenv, find_dotenv
 from openai.types.beta.threads.run import Run, RequiredActionSubmitToolOutputs
 from openai.types.beta.thread import Thread
 from openai.types.beta.assistant import Assistant
-from openai.types.beta.thread_create_and_run_params import ThreadMessage
-from typing import Union
 
 from assistant import avaliable_tools, StockAssistant
+from functions import getStockPrice, getStockData
+from seed import STOCK_ASSISTANT_SEEED_PROMPT
+
+import pandas as pd
+
 
 _: bool = load_dotenv(find_dotenv())  # read local .env file
-
-
-def getStockPrice(ticker: dict[str, str]) -> dict[str, Union[float, str]]:
-    """
-    Fetches the latest closing stock price for the given ticker symbol.
-
-    Parameters:
-    ticker (str): The stock ticker symbol.
-
-    Returns:
-    dict: A dictionary containing either the price or an error message.
-    """
-    try:
-        # Fetch data for the given ticker symbol
-        stock = yf.Ticker(ticker)
-
-        # Get the latest closing price
-        hist = stock.history(period="1d")
-        latest_price = hist['Close'].iloc[-1]
-        return {"price": latest_price}
-    except Exception as e:
-        # Log the specific error
-        return {"error": f"Error fetching price for {ticker}"}
 
 
 def handle_assistant_function_call(submit_tool_outputs: RequiredActionSubmitToolOutputs) -> None:
@@ -88,6 +66,51 @@ def handle_assistant_function_call(submit_tool_outputs: RequiredActionSubmitTool
                 #               tool_call_id}: {function_args}")
                 st.sidebar.error(f"Invalid input for {symbol}")
 
+        elif function_name == "get_stock_data":
+            try:
+                arguments_dict = json.loads(function_args)
+                ticker = arguments_dict["ticker"]
+                period = arguments_dict["period"]
+                st.sidebar.write(ticker, 'Historical Stocks Data For', period)
+
+                output = getStockData(ticker, period)
+
+                if "history_data" in output:
+                    history_data = output["history_data"]
+
+                    # Check if history_data is a DataFrame
+                    if isinstance(history_data, pd.DataFrame):
+                        # Convert DataFrame to string representation
+                        history_data_str = history_data.to_string(index=False)
+                        tools_output_array.append({
+                            "tool_call_id": tool_call_id,
+                            "output": history_data_str
+                        })
+                        st.sidebar.write(history_data)
+                    else:
+                        # Handle the case where history_data is not a DataFrame
+                        tools_output_array.append({
+                            "tool_call_id": tool_call_id,
+                            "output": str(history_data)
+                        })
+                        # Optionally, you can provide additional handling for non-DataFrame types
+                        st.sidebar.error(f"Unexpected 'history_data': {
+                                         type(history_data)}")
+
+                else:
+                    tools_output_array.append({
+                        "tool_call_id": tool_call_id,
+                        "output": output["error"]
+                    })
+                    st.sidebar.error(output["error"])
+            except json.JSONDecodeError:
+                st.sidebar.error(f"Invalid input for {ticker}")
+
+    print("Submitting tool outputs...")
+    print("run_id", run.id)
+    print("thread_id", st.session_state.thread_id)
+
+    print("tools_output_array", tools_output_array)
     # submit response to assistant
     client.beta.threads.runs.submit_tool_outputs(
         thread_id=st.session_state.thread_id,
@@ -118,11 +141,14 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-st.header(" :dollar: Stock & Company Clients AI")
+st.header(" :dollar: Stock Data AI")
 
 # Get User Open AI API Key
+
+st.sidebar.header("Fetch Fresh & Historical Stock Data")
+
 openai_api_key = st.sidebar.text_input(
-    "Your OpenAI API Key:", placeholder="sk-aAdsadklnvsd", value=os.getenv("OPENAI_API_KEY"))
+    "Enter Your OpenAI API Key:", placeholder="sk-aAdsadklnvsd", value=os.getenv("OPENAI_API_KEY"))
 
 stock_assistant_instace: StockAssistant = StockAssistant()
 
@@ -144,8 +170,8 @@ if st.sidebar.button("Start Chat"):
     # Step 01: Create an Assistant If not Present
 
     stock_assistant: Assistant = stock_assistant_instace.create_assistant(
-        name="Investment Helper",
-        instructions="You are an Investment Helper who assist with inquiries regarding companies we engage in business with. Provide responses based on our records, or if there's no business association with the company in question, kindly state that we do not have a business relationship.",
+        name="Stocks, Charts And Investment AI",
+        instructions=STOCK_ASSISTANT_SEEED_PROMPT,
         tools=avaliable_tools,
         file_obj=[]
     )
@@ -166,6 +192,7 @@ if st.sidebar.button("Start Chat"):
 
 def process_citations(text):
     process_text = text.content[0].text.value
+    print('====================', process_text)
     return process_text
 
 
@@ -181,7 +208,7 @@ if st.session_state.start_chat:
             st.write(message["content"])
 
     # chat input
-    if prompt := st.chat_input("Get tesla latest stock price!... Which companies we work with?"):
+    if prompt := st.chat_input("Get tesla latest stock price!... share meta last month historical stock data?"):
 
         # adding user in state
         st.session_state.message.append({
@@ -227,7 +254,7 @@ if st.session_state.start_chat:
                     # Handle the case where no action is required
                     # This could be logging, displaying a message, etc.
                     print("No action is required for this run.")
-
+            print("Polling for run completion...")
             run = client.beta.threads.runs.retrieve(
                 thread_id=st.session_state.thread_id,
                 run_id=run.id
