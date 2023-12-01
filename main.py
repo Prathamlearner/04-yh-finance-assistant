@@ -12,23 +12,13 @@ from dotenv import load_dotenv, find_dotenv
 
 from openai.types.beta.threads.run import Run, RequiredActionSubmitToolOutputs
 from openai.types.beta.thread import Thread
+from openai.types.beta.assistant import Assistant
 from openai.types.beta.thread_create_and_run_params import ThreadMessage
 from typing import Union
 
+from assistant import avaliable_tools, StockAssistant
+
 _: bool = load_dotenv(find_dotenv())  # read local .env file
-
-# connect with openai server
-client: OpenAI = OpenAI()
-
-assistant_id = os.environ.get("ASSISTANT_ID")
-
-if not assistant_id:
-    st.sidebar.error(f"Assistant is Sleeping - come back later!")
-    st.stop()
-
-# Assert to satisfy Mypy's type checking - we have already added the check above but mypy doesn't know that!!!
-# This assertion will inform Mypy that beyond this point in the code, assistant_id cannot be None. Here's how you can do it:
-assert assistant_id is not None, "Assistant ID must be set"
 
 
 def getStockPrice(ticker: dict[str, str]) -> dict[str, Union[float, str]]:
@@ -116,6 +106,10 @@ if "start_chat" not in st.session_state:
 if "thread_id" not in st.session_state:
     st.session_state.thread_id = None
 
+if "assistant_id" not in st.session_state:
+    st.session_state.assistant_id = None
+
+
 # Set up the Streamlit page title & icon
 st.set_page_config(
     page_title="Company Investment AI",
@@ -130,8 +124,11 @@ st.header(" :dollar: Stock & Company Clients AI")
 openai_api_key = st.sidebar.text_input(
     "Your OpenAI API Key:", placeholder="sk-aAdsadklnvsd", value=os.getenv("OPENAI_API_KEY"))
 
+stock_assistant_instace: StockAssistant = StockAssistant()
+
 if openai_api_key:
-    client.api_key = openai_api_key
+    client = stock_assistant_instace.init_client(openai_api_key)
+
 
 # Button to start chat
 if st.sidebar.button("Start Chat"):
@@ -139,6 +136,22 @@ if st.sidebar.button("Start Chat"):
     if not openai_api_key:
         st.sidebar.error("Please enter your OpenAI API Key")
         st.stop()
+
+    # Assert to satisfy Mypy's type checking - we have already added the check above but mypy doesn't know that!!!
+    # This assertion will inform Mypy that beyond this point in the code, assistant_id cannot be None. Here's how you can do it:
+    assert openai_api_key is not None, "Open AI API Key must be set"
+
+    # Step 01: Create an Assistant If not Present
+
+    stock_assistant: Assistant = stock_assistant_instace.create_assistant(
+        name="Investment Helper",
+        instructions="You are an Investment Helper who assist with inquiries regarding companies we engage in business with. Provide responses based on our records, or if there's no business association with the company in question, kindly state that we do not have a business relationship.",
+        tools=avaliable_tools,
+        file_obj=[]
+    )
+
+    assistant_id = stock_assistant.id
+    st.session_state.assistant_id = assistant_id
 
     st.session_state.start_chat = True
 
@@ -196,7 +209,7 @@ if st.session_state.start_chat:
 
         run: Run = client.beta.threads.runs.create(
             thread_id=st.session_state.thread_id,
-            assistant_id=assistant_id,
+            assistant_id=st.session_state.assistant_id,
             instructions="This is the Company Member, Investment AI Whiz. Answer respectufully and accurately.",
         )
 
