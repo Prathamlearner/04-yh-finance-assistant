@@ -23,7 +23,8 @@ client: OpenAI = OpenAI()
 assistant_id = os.environ.get("ASSISTANT_ID")
 
 if not assistant_id:
-    raise ValueError("Please set the ASSISTANT_ID environment variable")
+    st.sidebar.error(f"Assistant is Sleeping - come back later!")
+    st.stop()
 
 
 def getStockPrice(ticker: dict[str, str]) -> dict[str, Union[float, str]]:
