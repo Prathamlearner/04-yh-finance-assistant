@@ -1,38 +1,18 @@
-## A Simple Yahoo Finance Assistant
+## Stocks, Charts And Investment AI Assistant
 
 Live Preview: https://st-stocks-ai.streamlit.app/ 
 
 This project demonstrated the concepts Covered in first 9 Steps Of Panaverse learn-generative-ai repo!
 
-Assistant Info
+Assistant Functions
 
-- Name: Investment Helper
+#### Functions
+1. Latest Stock Price: 
 
-- Instructions: 
+###### Fetches the latest closing stock price for the given ticker symbol.
 
-"""
-You are an Investment Helper who assist with inquiries regarding companies we engage in business with. Provide responses based on our records, or if there's no business association with the company in question, kindly state that we do not have a business relationship. 
-"""
+2. Historical Stock Data: 
 
-- Model: gpt-3.5-turbo-1106
+###### Fetches historical stock data for the given ticker symbol and time period.
 
-- functions
-
-```
-{
-  "name": "get_stock_price",
-  "description": "Get the current stock price",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "symbol": {
-        "type": "string",
-        "description": "The stock symbol"
-      }
-    },
-    "required": [
-      "symbol"
-    ]
-  }
-}
-```
+Yahoo Finance API is used to retrive the data.
