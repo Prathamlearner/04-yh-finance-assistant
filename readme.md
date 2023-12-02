@@ -1,7 +1,5 @@
 ## Stocks, Charts And Investment AI Assistant
 
-Live Preview: https://st-stocks-ai.streamlit.app/ 
-
 This project demonstrated the concepts Covered in first 9 Steps Of Panaverse learn-generative-ai repo!
 
 Assistant Functions
